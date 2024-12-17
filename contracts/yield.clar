@@ -7,7 +7,11 @@
 (define-data-var early-unstake-penalty-rate uint u5) ;; 5% penalty rate
 (define-data-var community-treasury principal tx-sender) ;; Configurable treasury address
 
-;; Data maps to track user stakes and rewards
+;; New treasury management variables
+(define-data-var treasury-reward-percentage uint u10) ;; 10% of rewards go to treasury
+(define-data-var total-treasury-rewards uint u0)
+
+;; Existing data maps...
 (define-map user-stakes 
     principal 
     {
@@ -27,15 +31,57 @@
     }
 )
 
-;; Error constants
+;; Existing error constants...
 (define-constant ERR-NOT-AUTHORIZED (err u100))
 (define-constant ERR-INSUFFICIENT-BALANCE (err u101))
 (define-constant ERR-NO-ACTIVE-STAKE (err u102))
 (define-constant ERR-STAKE-IN-PROGRESS (err u103))
 (define-constant ERR-BELOW-MINIMUM (err u104))
 (define-constant ERR-INVALID-PRINCIPAL (err u105))
+(define-constant ERR-INVALID-PERCENTAGE (err u106))
 
-;; Read-only functions
+;; New treasury management functions
+(define-read-only (get-treasury-info)
+    {
+        treasury-address: (var-get community-treasury),
+        treasury-reward-percentage: (var-get treasury-reward-percentage),
+        total-treasury-rewards: (var-get total-treasury-rewards)
+    }
+)
+
+(define-public (set-treasury-reward-percentage (new-percentage uint))
+    (begin
+        ;; Only treasury can modify treasury reward percentage
+        (asserts! (is-eq tx-sender (var-get community-treasury)) ERR-NOT-AUTHORIZED)
+        
+        ;; Ensure percentage is between 0-20%
+        (asserts! (and (>= new-percentage u0) (<= new-percentage u20)) ERR-INVALID-PERCENTAGE)
+        
+        (var-set treasury-reward-percentage new-percentage)
+        (ok true)
+    )
+)
+
+(define-public (withdraw-treasury-rewards)
+    (let (
+        (sender tx-sender)
+        (treasury (var-get community-treasury))
+        (total-rewards (var-get total-treasury-rewards))
+    )
+        ;; Only treasury address can withdraw
+        (asserts! (is-eq sender treasury) ERR-NOT-AUTHORIZED)
+        
+        ;; Transfer accumulated treasury rewards
+        (try! (as-contract (stx-transfer? total-rewards (as-contract tx-sender) sender)))
+        
+        ;; Reset treasury rewards
+        (var-set total-treasury-rewards u0)
+        
+        (ok total-rewards)
+    )
+)
+
+;; Existing functions remain the same...
 (define-read-only (get-user-stake (user principal))
     (map-get? user-stakes user)
 )
@@ -49,7 +95,6 @@
     (/ (* amount blocks) u1000)
 )
 
-;; Public functions
 (define-public (stake-tokens (amount uint) (auto-compound bool))
     (let (
         (sender tx-sender)
@@ -70,6 +115,7 @@
         (ok true)
     )
 )
+
 
 (define-public (claim-rewards)
     (let (
