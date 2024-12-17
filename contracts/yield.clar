@@ -33,6 +33,7 @@
 (define-constant ERR-NO-ACTIVE-STAKE (err u102))
 (define-constant ERR-STAKE-IN-PROGRESS (err u103))
 (define-constant ERR-BELOW-MINIMUM (err u104))
+(define-constant ERR-INVALID-PRINCIPAL (err u105))
 
 ;; Read-only functions
 (define-read-only (get-user-stake (user principal))
@@ -108,6 +109,7 @@
 (define-public (set-community-treasury (new-treasury principal))
     (begin
         (asserts! (is-eq tx-sender (var-get community-treasury)) ERR-NOT-AUTHORIZED)
+        (asserts! (not (is-eq new-treasury 'SP000000000000000000002Q6VF78)) ERR-INVALID-PRINCIPAL)
         (var-set community-treasury new-treasury)
         (ok true)
     )
@@ -168,3 +170,4 @@
         )
     )
 )
+
