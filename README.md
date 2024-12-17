@@ -1,6 +1,6 @@
 # Stacking Rewards Optimizer
 
-A Clarity smart contract that enables users to optimize their Stacking rewards through automated management and compounding features.
+A Clarity smart contract that enables users to optimize their Stacking rewards through advanced management, compounding features, and treasury management.
 
 ## Features
 
@@ -9,6 +9,8 @@ A Clarity smart contract that enables users to optimize their Stacking rewards t
 - Flexible reward claiming system
 - Built-in reward calculation based on stake amount and duration
 - Safety mechanisms to protect user funds
+- Community treasury management
+- Configurable early unstake penalty
 
 ## Contract Functions
 
@@ -22,9 +24,9 @@ A Clarity smart contract that enables users to optimize their Stacking rewards t
    - Returns the reward information for a given user
    - Shows pending rewards, total claimed, and last claim block
 
-3. `calculate-rewards (amount uint) (blocks uint)`
-   - Calculates potential rewards based on amount and duration
-   - Uses a simplified 10% APY model
+3. `get-treasury-info ()`
+   - Returns details about the community treasury
+   - Includes treasury address, reward percentage, and total accumulated rewards
 
 ### Public Functions
 
@@ -39,8 +41,21 @@ A Clarity smart contract that enables users to optimize their Stacking rewards t
    - Auto-compounds if enabled, otherwise transfers to user
 
 3. `unstake ()`
-   - Withdraws staked tokens after staking period ends
+   - Withdraws staked tokens 
+   - Applies early unstake penalty if withdrawn before staking period ends
    - Automatically claims pending rewards
+
+4. `set-community-treasury (new-treasury principal)`
+   - Allows current treasury to update the community treasury address
+   - Prevents setting to null address
+
+5. `set-treasury-reward-percentage (new-percentage uint)`
+   - Configures the percentage of rewards allocated to the treasury
+   - Limits percentage between 0-20%
+
+6. `withdraw-treasury-rewards ()`
+   - Allows treasury to withdraw accumulated rewards
+   - Resets treasury rewards after withdrawal
 
 ## Error Codes
 
@@ -49,6 +64,8 @@ A Clarity smart contract that enables users to optimize their Stacking rewards t
 - `ERR-NO-ACTIVE-STAKE (u102)`: No active stake found
 - `ERR-STAKE-IN-PROGRESS (u103)`: Cannot perform operation while stake is active
 - `ERR-BELOW-MINIMUM (u104)`: Stake amount below minimum requirement
+- `ERR-INVALID-PRINCIPAL (u105)`: Invalid principal address
+- `ERR-INVALID-PERCENTAGE (u106)`: Invalid percentage value
 
 ## Usage Example
 
@@ -64,7 +81,18 @@ A Clarity smart contract that enables users to optimize their Stacking rewards t
 
 ;; Unstake after period ends
 (contract-call? .stacking-optimizer unstake)
+
+;; Check treasury info
+(contract-call? .stacking-optimizer get-treasury-info)
 ```
+
+## Tokenomics and Parameters
+
+- Minimum Stake Amount: 50,000 STX
+- Staking Period: 10 blocks
+- Reward Calculation: 10% APY (simplified model)
+- Early Unstake Penalty: 5% (configurable up to 20%)
+- Treasury Reward Percentage: 10% (configurable between 0-20%)
 
 ## Security Considerations
 
@@ -72,6 +100,8 @@ A Clarity smart contract that enables users to optimize their Stacking rewards t
 2. All state-changing functions include appropriate checks and balances
 3. Mathematical operations are designed to prevent overflow
 4. Staking periods are enforced to maintain system stability
+5. Treasury management functions have strict access controls
+6. Configurable early unstake penalty protects the protocol
 
 ## Development and Testing
 
@@ -88,4 +118,3 @@ Contributions are welcome! Please submit pull requests with:
 - Detailed description of changes
 - Updated tests
 - Documentation updates
-
